@@ -9,10 +9,7 @@ module.exports = function(tag,props,children){
         children = args.slice(2);
     }
 
-    if(typeof(tag)==="string"){
-        return h(tag,props,children)
-    }else{
-        return new tag(props);
-    }
+    return h(tag,props,children)
+    
 
 }
