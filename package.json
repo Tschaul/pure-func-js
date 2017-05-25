@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node node_modules/babel-cli/bin/babel.js --plugins transform-react-jsx index.jsx --out-file index.js",
+    "build": "node node_modules/babel-cli/bin/babel.js --watch --plugins transform-react-jsx index.jsx --out-file index.js",
     "serve": "node node_modules/serve/bin/serve.js"
   },
   "repository": {
