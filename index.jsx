@@ -15,18 +15,18 @@ const Model = Record({
 const view = model => dispatch => (
     <div>
         <h1>Count: {model.count}</h1>
-        <button onclick={dispatch(Increment)}>+</button>
-        <button onclick={dispatch(Decrement)}>-</button>
+        <button onclick={()=>dispatch({type:INCREMENT})}>+</button>
+        <button onclick={()=>dispatch({type:DECREMENT})}>-</button>
     </div>
 );
 
 // INTENT
 
-const Increment = Symbol();
-const Decrement = Symbol();
+const INCREMENT = Symbol("INCREMENT");
+const DECREMENT = Symbol("DECREMENT");
 
 const update = model => intent => {
-    switch(intent){
+    switch(intent.type){
         case(Increment):
             return model.update("count", x => x+1);
         case(Decrement):
@@ -45,7 +45,7 @@ var currentElement = create(currentNode);
 document.body.appendChild(currentElement)
 
 // SIDEEFFECTS
-const dispatch = intent => event => {
+const dispatch = intent => {
 
     const nextModel = update(currentModel)(intent);
     const nextNode = view(nextModel)(dispatch)
@@ -57,7 +57,7 @@ const dispatch = intent => event => {
 
 }
 
-dispatch()();
+dispatch();
 
 
 
