@@ -59,17 +59,24 @@ const update = model => intent => {
         case(UPDATE_NEW_TODO_NAME):
             return model.set("newTodoName",intent.value);
         case(ADD_NEW_TODO):
-            const todosWithAdded = model.todos.push(new Todo({
-                id: Math.random(),
-                name: model.newTodoName,
-                done: false
-            }))
-            return model.set("todos",todosWithAdded).set("newTodoName","");
+            return model
+                .set("todos", 
+                    model.todos.push(new Todo({
+                        id: Math.random(),
+                        name: model.newTodoName,
+                        done: false
+                    }))
+                )
+                .set("newTodoName","");
         case(TOGGLE):
-            const todosWithToggled = model.todos.map(todo => 
-                todo.id === intent.id ? todo.update("done", d => !d) : todo
-            )
-            return model.set("todos", todosWithToggled );
+            return model.
+                set("todos", 
+                    model.todos.map(todo => 
+                        todo.id === intent.id 
+                            ? todo.update("done", d => !d) 
+                            : todo
+                    ) 
+                );
         default:
             return model;
     }
