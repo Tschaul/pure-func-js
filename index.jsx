@@ -3,6 +3,7 @@ const hFactory = require("./hFactory.js");
 
 const { create, diff, patch } = require("./node_modules/virtual-dom/dist/virtual-dom.js");
 const { Record, List } = require("./node_modules/immutable/dist/immutable.js")
+const { Subject } = require("./node_modules/rxjs/bundles/Rx.js")
 
 // MODEL
 
@@ -31,7 +32,7 @@ const Model = Record({
 
 // VIEW 
 
-const view = model => dispatch => (
+const view = (model, dispatch) => (
     <div>
         <h1>{model.title}</h1>
         <ul>
@@ -54,7 +55,7 @@ const TOGGLE = Symbol("TOGGLE");
 const UPDATE_NEW_TODO_NAME = Symbol("UPDATE_NEW_TODO_NAME");
 const ADD_NEW_TODO = Symbol("ADD_NEW_TODO");
 
-const update = model => intent => {
+const update = (model, intent) => {
     switch(intent.type){
         case(UPDATE_NEW_TODO_NAME):
             return model.set("newTodoName",intent.value);
@@ -82,31 +83,62 @@ const update = model => intent => {
     }
 }
 
-// BOOTSTRAPPING
+// RXJS
 
-var currentModel = new Model();
-var currentNode = (<span/>);
-var currentElement = create(currentNode);
+
+const actionStream = new Subject();
+
+const dispatch = actionStream.next.bind(actionStream);
+
+const initialModel = new Model();
+const initialNode = view(initialModel,dispatch);
+
+var currentElement = create(initialNode)
 
 document.body.appendChild(currentElement)
 
-// SIDEEFFECTS
-const dispatch = intent => {
+actionStream
+.scan((currentModel,action) => {
+    return update(currentModel,action)
+}, initialModel) // <- stream of state
+.map(state => {
+    return view(state,dispatch)
+}) // <- stream of virtual dom nodes
+.startWith(initialNode)
+.pairwise()
+.map((pair) => {
+    [currentNode,nextNode] = pair;
+    return diff(currentNode, nextNode);
+}) // <- stream of virtual dom changes
+.subscribe(changes => {
+    currentElement = patch(currentElement, changes)
+})
+
+// BOOTSTRAPPING
+
+// var currentModel = new Model();
+// var currentNode = (<span/>);
+// var currentElement = create(currentNode);
+
+// document.body.appendChild(currentElement)
+
+// // SIDEEFFECTS
+// const dispatch = intent => {
 
 
-    const nextModel = update(currentModel)(intent);
-    const nextNode = view(nextModel)(dispatch)
-    const nextElement = patch(currentElement, diff(currentNode, nextNode))
+//     const nextModel = update(currentModel)(intent);
+//     const nextNode = view(nextModel)(dispatch)
+//     const nextElement = patch(currentElement, diff(currentNode, nextNode))
 
-    console.log(intent,nextModel)
+//     console.log(intent,nextModel)
 
-    currentElement = nextElement;
-    currentNode = nextNode;
-    currentModel = nextModel;
+//     currentElement = nextElement;
+//     currentNode = nextNode;
+//     currentModel = nextModel;
 
-}
+// }
 
-dispatch({});
+// dispatch({});
 
 
 

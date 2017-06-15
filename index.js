@@ -3,6 +3,7 @@ const hFactory = require("./hFactory.js");
 
 const { create, diff, patch } = require("./node_modules/virtual-dom/dist/virtual-dom.js");
 const { Record, List } = require("./node_modules/immutable/dist/immutable.js");
+const { Subject } = require("./node_modules/rxjs/bundles/Rx.js");
 
 // MODEL
 
@@ -28,7 +29,7 @@ const Model = Record({
 
 // VIEW 
 
-const view = model => dispatch => hFactory(
+const view = (model, dispatch) => hFactory(
     "div",
     null,
     hFactory(
@@ -61,45 +62,73 @@ const TOGGLE = Symbol("TOGGLE");
 const UPDATE_NEW_TODO_NAME = Symbol("UPDATE_NEW_TODO_NAME");
 const ADD_NEW_TODO = Symbol("ADD_NEW_TODO");
 
-const update = model => intent => {
+const update = (model, intent) => {
     switch (intent.type) {
         case UPDATE_NEW_TODO_NAME:
             return model.set("newTodoName", intent.value);
         case ADD_NEW_TODO:
-            const todosWithAdded = model.todos.push(new Todo({
+            return model.set("todos", model.todos.push(new Todo({
                 id: Math.random(),
                 name: model.newTodoName,
                 done: false
-            }));
-            return model.set("todos", todosWithAdded).set("newTodoName", "");
+            }))).set("newTodoName", "");
         case TOGGLE:
-            const todosWithToggled = model.todos.map(todo => todo.id === intent.id ? todo.update("done", d => !d) : todo);
-            return model.set("todos", todosWithToggled);
+            return model.set("todos", model.todos.map(todo => todo.id === intent.id ? todo.update("done", d => !d) : todo));
         default:
             return model;
     }
 };
 
-// BOOTSTRAPPING
+// RXJS
 
-var currentModel = new Model();
-var currentNode = hFactory("span", null);
-var currentElement = create(currentNode);
+
+const actionStream = new Subject();
+
+const dispatch = actionStream.next.bind(actionStream);
+
+const initialModel = new Model();
+const initialNode = view(initialModel, dispatch);
+
+var currentElement = create(initialNode);
 
 document.body.appendChild(currentElement);
 
-// SIDEEFFECTS
-const dispatch = intent => {
+actionStream.scan((currentModel, action) => {
+    return update(currentModel, action);
+}, initialModel) // <- stream of state
+.map(state => {
+    return view(state, dispatch);
+}) // <- stream of virtual dom nodes
+.startWith(initialNode).pairwise().map(pair => {
+    [currentNode, nextNode] = pair;
+    return diff(currentNode, nextNode);
+}) // <- stream of virtual dom changes
+.subscribe(changes => {
+    currentElement = patch(currentElement, changes);
+});
 
-    const nextModel = update(currentModel)(intent);
-    const nextNode = view(nextModel)(dispatch);
-    const nextElement = patch(currentElement, diff(currentNode, nextNode));
+// BOOTSTRAPPING
 
-    console.log(intent, nextModel);
+// var currentModel = new Model();
+// var currentNode = (<span/>);
+// var currentElement = create(currentNode);
 
-    currentElement = nextElement;
-    currentNode = nextNode;
-    currentModel = nextModel;
-};
+// document.body.appendChild(currentElement)
 
-dispatch({});
+// // SIDEEFFECTS
+// const dispatch = intent => {
+
+
+//     const nextModel = update(currentModel)(intent);
+//     const nextNode = view(nextModel)(dispatch)
+//     const nextElement = patch(currentElement, diff(currentNode, nextNode))
+
+//     console.log(intent,nextModel)
+
+//     currentElement = nextElement;
+//     currentNode = nextNode;
+//     currentModel = nextModel;
+
+// }
+
+// dispatch({});
