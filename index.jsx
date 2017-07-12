@@ -1,144 +1,39 @@
 const hFactory = require("./hFactory.js");
 /** @jsx hFactory */
 
-const { create, diff, patch } = require("./node_modules/virtual-dom/dist/virtual-dom.js");
+const { create, diff, patch, h } = require("./node_modules/virtual-dom/dist/virtual-dom.js");
 const { Record, List } = require("./node_modules/immutable/dist/immutable.js")
 const { Subject } = require("./node_modules/rxjs/bundles/Rx.js")
 
-// MODEL
-
-const Todo = Record({
-    id: 0,
-    name: "",
-    done: false
-})
-
-const Model = Record({
-    title: "",
-    todos: List([
-        new Todo({
-            id: Math.random(),
-            name: "Schokolade",
-            done: false
-        }),
-        new Todo({
-            id: Math.random(),
-            name: "Milch",
-            done: true
-        })
-    ]),
-    newTodoName: ""
-})
-
-// VIEW 
-
-const view = (model, dispatch) => (
-    <div>
-        <h1>{model.title}</h1>
-        <ul>
-            {model.todos.map(todo => (
-                <li style={{
-                    "text-decoration": todo.done ? "line-through" : "none"
-                }} onclick={()=>dispatch({type: TOGGLE, id: todo.id})}>
-                    {todo.name}
-                </li>
-            ))}
-        </ul>
-        <input value={model.newTodoName} oninput={event=>dispatch({type:UPDATE_NEW_TODO_NAME, value: event.target.value})}/>
-        <button onclick={()=>dispatch({type:ADD_NEW_TODO})}>Add</button>
-    </div>
-);
-
-// INTENT
-
-const TOGGLE = Symbol("TOGGLE");
-const UPDATE_NEW_TODO_NAME = Symbol("UPDATE_NEW_TODO_NAME");
-const ADD_NEW_TODO = Symbol("ADD_NEW_TODO");
-
-const update = (model, intent) => {
-    switch(intent.type){
-        case(UPDATE_NEW_TODO_NAME):
-            return model.set("newTodoName",intent.value);
-        case(ADD_NEW_TODO):
-            return model
-                .set("todos", 
-                    model.todos.push(new Todo({
-                        id: Math.random(),
-                        name: model.newTodoName,
-                        done: false
-                    }))
-                )
-                .set("newTodoName","");
-        case(TOGGLE):
-            return model.
-                set("todos", 
-                    model.todos.map(todo => 
-                        todo.id === intent.id 
-                            ? todo.update("done", d => !d) 
-                            : todo
-                    ) 
-                );
-        default:
-            return model;
-    }
+// 1: Create a function that declares what the DOM should look like
+function render(count)  {
+    return h('div', {
+        style: {
+            textAlign: 'center',
+            lineHeight: (100 + count) + 'px',
+            border: '1px solid red',
+            width: (100 + count) + 'px',
+            height: (100 + count) + 'px'
+        }
+    }, [String(count)]);
 }
 
-// RXJS
+// 2: Initialise the document
+var count = 0;      // We need some app data. Here we just store a count.
 
+var tree = render(count);               // We need an initial tree
+var rootNode = create(tree);     // Create an initial root DOM node ...
+document.body.appendChild(rootNode);    // ... and it should be in the document
 
-const actionStream = new Subject();
+// 3: Wire up the update logic
+setInterval(function () {
+      count++;
 
-const dispatch = actionStream.next.bind(actionStream);
-
-const initialModel = new Model();
-const initialNode = view(initialModel,dispatch);
-
-var currentElement = create(initialNode)
-
-document.body.appendChild(currentElement)
-
-actionStream
-.scan((currentModel,action) => {
-    return update(currentModel,action)
-}, initialModel) // <- stream of state
-.map(state => {
-    return view(state,dispatch)
-}) // <- stream of virtual dom nodes
-.startWith(initialNode)
-.pairwise()
-.map((pair) => {
-    [currentNode,nextNode] = pair;
-    return diff(currentNode, nextNode);
-}) // <- stream of virtual dom changes
-.subscribe(changes => {
-    currentElement = patch(currentElement, changes)
-})
-
-// BOOTSTRAPPING
-
-// var currentModel = new Model();
-// var currentNode = (<span/>);
-// var currentElement = create(currentNode);
-
-// document.body.appendChild(currentElement)
-
-// // SIDEEFFECTS
-// const dispatch = intent => {
-
-
-//     const nextModel = update(currentModel)(intent);
-//     const nextNode = view(nextModel)(dispatch)
-//     const nextElement = patch(currentElement, diff(currentNode, nextNode))
-
-//     console.log(intent,nextModel)
-
-//     currentElement = nextElement;
-//     currentNode = nextNode;
-//     currentModel = nextModel;
-
-// }
-
-// dispatch({});
+      var newTree = render(count);
+      var patches = diff(tree, newTree);
+      rootNode = patch(rootNode, patches);
+      tree = newTree;
+}, 1000);
 
 
 
