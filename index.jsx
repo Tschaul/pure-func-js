@@ -3,7 +3,7 @@ const hFactory = require("./hFactory.js");
 
 const { create, diff, patch, h } = require("./node_modules/virtual-dom/dist/virtual-dom.js");
 const { Record, List } = require("./node_modules/immutable/dist/immutable.js")
-const { Subject } = require("./node_modules/rxjs/bundles/Rx.js")
+const { Subject, Observable } = require("./node_modules/rxjs/bundles/Rx.js")
 
 function render(count)  {
     return h('div', {
