@@ -5,7 +5,6 @@ const { create, diff, patch, h } = require("./node_modules/virtual-dom/dist/virt
 const { Record, List } = require("./node_modules/immutable/dist/immutable.js")
 const { Subject } = require("./node_modules/rxjs/bundles/Rx.js")
 
-// 1: Create a function that declares what the DOM should look like
 function render(count)  {
     return h('div', {
         style: {
@@ -18,14 +17,12 @@ function render(count)  {
     }, [String(count)]);
 }
 
-// 2: Initialise the document
-var count = 0;      // We need some app data. Here we just store a count.
+var count = 0;
 
-var tree = render(count);               // We need an initial tree
-var rootNode = create(tree);     // Create an initial root DOM node ...
-document.body.appendChild(rootNode);    // ... and it should be in the document
+var tree = render(count);
+var rootNode = create(tree);
+document.body.appendChild(rootNode);
 
-// 3: Wire up the update logic
 setInterval(function () {
       count++;
 
