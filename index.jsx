@@ -6,15 +6,21 @@ const { Record, List } = require("./node_modules/immutable/dist/immutable.js")
 const { Subject, Observable } = require("./node_modules/rxjs/bundles/Rx.js")
 
 function render(count)  {
-    return h('div', {
-        style: {
-            textAlign: 'center',
-            lineHeight: (100 + count) + 'px',
-            border: '1px solid red',
-            width: (100 + count) + 'px',
-            height: (100 + count) + 'px'
-        }
-    }, [String(count)]);
+
+    return (
+        <div 
+            style = {{
+                textAlign: 'center',
+                lineHeight: (100 + count) + 'px',
+                border: '1px solid red',
+                width: (100 + count) + 'px',
+                height: (100 + count) + 'px'
+            }}        
+        >
+            {count}
+        </div>
+    )
+
 }
 
 var count = 0;
