@@ -5,32 +5,90 @@ const { create, diff, patch, h } = require("./node_modules/virtual-dom/dist/virt
 const { Record, List } = require("./node_modules/immutable/dist/immutable.js")
 const { Subject, Observable } = require("./node_modules/rxjs/bundles/Rx.js")
 
-function render(count)  {
-    return h('div', {
-        style: {
-            textAlign: 'center',
-            lineHeight: (100 + count) + 'px',
-            border: '1px solid red',
-            width: (100 + count) + 'px',
-            height: (100 + count) + 'px'
-        }
-    }, [String(count)]);
+const Todo = Record({
+    done: false,
+    name: ""
+})
+
+const Model = Record({
+    title: "Liste",
+    todos: List([
+        new Todo({
+            name: "Milch"
+        }),
+        new Todo({
+            name: "Kaffee"
+        }),
+        new Todo({
+            name: "Schokolade"
+        })
+    ])
+})
+
+
+TOGGLE = Symbol("TOGGLE")
+
+const reduce = (state,action) => {
+    switch(action.type){
+        case TOGGLE:
+            return state.updateIn(
+                ["todos",action.index,"done"],
+                x => !x
+            )
+        default:
+            return state;
+    }
 }
 
-var count = 0;
 
-var tree = render(count);
-var rootNode = create(tree);
-document.body.appendChild(rootNode);
+const render = (state,dispatch) =>  (
+    <div>
+        <h3>{state.title}</h3>
+        <ul>
+            {state.todos.map((todo,index)=>(
+                <li
+                    style={{
+                        "text-decoration": todo.done ? "line-through" : "none"
+                    }}
+                    onclick = {()=>dispatch({type: TOGGLE, index: index})}
+                >{todo.name}</li>
+            ))}
+        </ul>
+    </div>
+)
 
-setInterval(function () {
-      count++;
+const actionStream = new Subject();
+const dispatch = (action) => actionStream.next(action);
 
-      var newTree = render(count);
-      var patches = diff(tree, newTree);
-      rootNode = patch(rootNode, patches);
-      tree = newTree;
-}, 1000);
+const initialState = new Model();
+const initialTree = render(initialState,dispatch);
+const initialNode = create(initialTree);
+
+document.body.appendChild(initialNode);
+
+// action -> state
+const stateStream = actionStream
+    .scan((state,action)=>{
+        return reduce(state,action)
+    },initialState)
+
+// state -> vDOM
+const renderStream = stateStream
+    .map(state => render(state,dispatch))
+    .startWith(initialTree);
+
+// vDOM -> patches
+const patchesStream = renderStream
+    .pairwise()
+    .map(pair => {
+        const [oldTree,newTree] = pair;
+        return diff(oldTree, newTree)
+    });
+
+// patches -> DOM
+patchesStream.scan((node,patches) => {
+    return patch(node, patches);
+},initialNode).subscribe()
 
 
 
